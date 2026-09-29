@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Campus Wallet</title>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,600;12..96,800&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#eef3f0;--card:#fff;--ink:#14302b;--mute:#5d746e;--line:#d3dfda;--owe:#b4443a;--lent:#2f6b5b;--gold:#e0a100;--r:14px;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#0f1c19;--card:#182a26;--ink:#e6f0ec;--mute:#93aca5;--line:#2a403a;--owe:#ef8378;--lent:#6fc3ab}}
+:root[data-theme="dark"]{--bg:#0f1c19;--card:#182a26;--ink:#e6f0ec;--mute:#93aca5;--line:#2a403a;--owe:#ef8378;--lent:#6fc3ab}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:'Bricolage Grotesque',system-ui,sans-serif;line-height:1.45}
+main{max-width:760px;margin:0 auto;padding:20px 16px 60px}
+h1{font-size:2rem;font-weight:800;margin:6px 0 2px;letter-spacing:-.02em}
+.sub{color:var(--mute);margin:0 0 18px}
+.sum{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:18px}
+.sum div{background:var(--card);border:1px solid var(--line);border-radius:var(--r);padding:12px}
+.sum small{color:var(--mute);display:block;font-size:.78rem}
+.sum b{font-size:1.25rem;font-weight:800}
+#s-left b{color:var(--lent)} #s-owe b{color:var(--owe)}
+.tabs{display:flex;gap:6px;overflow-x:auto;margin-bottom:16px}
+.tabs button{flex:1;white-space:nowrap;border:1px solid var(--line);background:transparent;color:var(--ink);padding:10px 12px;border-radius:999px;font:inherit;font-weight:600;cursor:pointer}
+.tabs button[aria-selected=true]{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+button:focus-visible,input:focus-visible,select:focus-visible{outline:3px solid var(--gold);outline-offset:2px}
+.panel{background:var(--card);border:1px solid var(--line);border-radius:var(--r);padding:16px;margin-bottom:16px}
+h2{font-size:1.1rem;margin:0 0 12px}
+form{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+form .full{grid-column:1/-1}
+label{font-size:.8rem;color:var(--mute);display:block}
+input,select{width:100%;padding:10px;border:1px solid var(--line);border-radius:10px;background:var(--bg);color:var(--ink);font:inherit;margin-top:3px}
+.btn{border:0;background:var(--gold);color:#241a00;font:inherit;font-weight:700;padding:11px 16px;border-radius:10px;cursor:pointer}
+.btn.ghost{background:transparent;border:1px solid var(--line);color:var(--ink);padding:7px 10px;font-weight:600;font-size:.85rem}
+.btn.danger{color:var(--owe)}
+.bar{height:10px;border-radius:99px;background:var(--line);overflow:hidden;margin:8px 0}
+.bar i{display:block;height:100%;background:var(--lent);transition:width .3s}
+.bar.over i{background:var(--owe)}
+.row{display:flex;justify-content:space-between;gap:10px;padding:10px 0;border-top:1px solid var(--line);align-items:center}
+.row:first-of-type{border-top:0}
+.row .m{color:var(--mute);font-size:.82rem}
+.amt{font-weight:800;white-space:nowrap}
+.debt{border:1px solid var(--line);border-radius:12px;padding:12px;margin-bottom:10px}
+.debt.done{opacity:.75;border-style:dashed}
+.debt header{display:flex;justify-content:space-between;gap:8px;align-items:baseline}
+.tag{display:inline-block;font-size:.75rem;font-weight:700;padding:2px 9px;border-radius:99px;background:var(--gold);color:#241a00}
+.tag.ok{background:var(--lent);color:#fff}
+.acts{display:flex;gap:6px;flex-wrap:wrap;margin-top:10px}
+.pay{display:flex;gap:6px;margin-top:10px}
+.pay input{margin:0}
+.empty{color:var(--mute);text-align:center;padding:18px 0}
+.log li{padding:6px 0;border-top:1px solid var(--line);font-size:.9rem;list-style:none}
+.log{padding:0;margin:0}
+@media (max-width:480px){form{grid-template-columns:1fr}.sum b{font-size:1.05rem}}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+<main>
+<h1>Campus Wallet</h1>
+<p class="sub">Plan your budget. Track money you borrowed and money you lent.</p>
+
+<section class="sum" aria-label="Summary">
+<div id="s-left"><small>Left this month</small><b>0</b></div>
+<div id="s-owe"><small>I owe</small><b>0</b></div>
+<div id="s-lent"><small>Owed to me</small><b>0</b></div>
+</section>
+
+<nav class="tabs" role="tablist">
+<button role="tab" data-t="budget" aria-selected="true">Budget</button>
+<button role="tab" data-t="borrowed" aria-selected="false">I owe</button>
+<button role="tab" data-t="lent" aria-selected="false">Owed to me</button>
+<button role="tab" data-t="history" aria-selected="false">History</button>
+</nav>
+
+<div id="view"></div>
+</main>
+
+<script>
+(function(){
+var KEY='campus-wallet-v1', tab='budget';
+var S={budget:{income:0,limit:0},expenses:[],incomes:[],debts:[],log:[]};
+try{var raw=localStorage.getItem(KEY); if(raw){S=Object.assign(S,JSON.parse(raw));}}catch(e){}
+var cloud=null, cloudRef=null, cloudMsg='Cloud backup: checking...', timer=null;
+function save(){S.ts=Date.now();try{localStorage.setItem(KEY,JSON.stringify(S));}catch(e){} pushCloud();}
+function pushCloud(){
+ if(!cloudRef)return; clearTimeout(timer);
+ timer=setTimeout(function(){cloudRef.set({ts:S.ts,state:JSON.stringify(S)}).then(function(){setMsg('Cloud backup: saved')}).catch(function(){setMsg('Cloud backup: failed. Use file backup.')});},800);
+}
+function setMsg(m){cloudMsg=m;var el=document.getElementById('cmsg');if(el)el.textContent=m;}
+function applyState(o){S=Object.assign({budget:{income:0,limit:0},expenses:[],incomes:[],debts:[],log:[]},o);try{localStorage.setItem(KEY,JSON.stringify(S));}catch(e){}render();}
+function initCloud(){
+ if(!window.claude||!claude.use){setMsg('Cloud backup: not available. Use file backup.');return;}
+ Promise.all([claude.use('db'),claude.use('user')]).then(function(r){
+  var db=r[0],user=r[1];
+  if(!db||!user){setMsg('Cloud backup: not available. Use file backup.');return;}
+  return user.id().then(function(id){
+   if(!id){setMsg('Cloud backup: sign in to claude.ai to enable.');return;}
+   cloudRef=db.doc('data/users/'+id+'/wallet');
+   return cloudRef.get().then(function(snap){
+    var d=snap.exists?snap.data():null;
+    if(d&&d.state&&(d.ts||0)>(S.ts||0)){applyState(JSON.parse(d.state));setMsg('Cloud backup: restored your data');}
+    else{setMsg('Cloud backup: on');if(S.ts)pushCloud();}
+   });
+  });
+ }).catch(function(){setMsg('Cloud backup: not available. Use file backup.');});
+}
+function uid(){return Date.now().toString(36)+Math.random().toString(36).slice(2,6)}
+function today(){return new Date().toISOString().slice(0,10)}
+function month(){return today().slice(0,7)}
+function money(n){return 'Rs. '+Number(n||0).toLocaleString('en-LK',{maximumFractionDigits:2})}
+function esc(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]})}
+function log(t){S.log.unshift({d:today(),t:t}); if(S.log.length>300)S.log.pop();}
+function paid(d){return d.paid.reduce(function(a,p){return a+p.amt},0)}
+function monthSpent(){return S.expenses.filter(function(e){return e.date.slice(0,7)===month()}).reduce(function(a,e){return a+e.amt},0)}
+function monthIncome(){return S.incomes.filter(function(e){return e.date.slice(0,7)===month()}).reduce(function(a,e){return a+e.amt},0)}
+function totals(type){return S.debts.filter(function(d){return d.type===type&&!d.done}).reduce(function(a,d){return a+d.amt-paid(d)},0)}
+
+function summary(){
+ var left=(S.budget.limit||monthIncome())-monthSpent();
+ document.querySelector('#s-left b').textContent=money(left);
+ document.querySelector('#s-owe b').textContent=money(totals('borrowed'));
+ document.querySelector('#s-lent b').textContent=money(totals('lent'));
+}
+
+function budgetView(){
+ var lim=S.budget.limit||0, sp=monthSpent(), pct=lim?Math.min(100,sp/lim*100):0;
+ var list=S.expenses.filter(function(e){return e.date.slice(0,7)===month()}).sort(function(a,b){return b.date<a.date?-1:1});
+ var inc=S.incomes.filter(function(e){return e.date.slice(0,7)===month()}).sort(function(a,b){return b.date<a.date?-1:1});
+ var src={};inc.forEach(function(e){src[e.src]=(src[e.src]||0)+e.amt});
+ var cats={};list.forEach(function(e){cats[e.cat]=(cats[e.cat]||0)+e.amt});
+ return '<div class="panel"><h2>This month\'s plan</h2><form id="f-plan">'+
+ '<label class="full">Spending limit for this month<input name="limit" type="number" min="0" step="any" value="'+(S.budget.limit||'')+'"></label>'+
+ '<button class="btn full" type="submit">Save plan</button></form>'+
+ '<div class="bar'+(lim&&sp>lim?' over':'')+'"><i style="width:'+pct+'%"></i></div>'+
+ '<div class="m" style="color:var(--mute)">Spent '+money(sp)+' of '+money(lim)+'</div></div>'+
+ '<div class="panel"><h2>Income this month: '+money(monthIncome())+'</h2>'+
+ (Object.keys(src).length?'<div class="m" style="color:var(--mute);margin-bottom:8px">'+Object.keys(src).map(function(c){return esc(c)+': '+money(src[c])}).join(' &nbsp;|&nbsp; ')+'</div>':'')+
+ '<form id="f-inc"><label>Amount<input name="amt" type="number" min="0.01" step="any" required></label>'+
+ '<label>Source<select name="src"><option>Mahapola</option><option>Bursary</option><option>Home (parents)</option><option>Part-time job</option><option>Freelance</option><option>Other</option></select></label>'+
+ '<label class="full">Note<input name="note" maxlength="60"></label>'+
+ '<button class="btn full" type="submit">Add income</button></form>'+
+ (inc.length?inc.map(function(e){return '<div class="row"><div>'+esc(e.note||e.src)+'<div class="m">'+esc(e.src)+', '+e.date+'</div></div><div><span class="amt" style="color:var(--lent)">+'+money(e.amt)+'</span> <button class="btn ghost danger" data-del-inc="'+e.id+'" aria-label="Delete income">Delete</button></div></div>'}).join(''):'<div class="empty">No income recorded this month.</div>')+'</div>'+
+ '<div class="panel"><h2>Add expense</h2><form id="f-exp">'+
+ '<label>Amount<input name="amt" type="number" min="0.01" step="any" required></label>'+
+ '<label>Category<select name="cat"><option>Food</option><option>Transport</option><option>Boarding</option><option>Books &amp; printing</option><option>Data &amp; phone</option><option>Fun</option><option>Other</option></select></label>'+
+ '<label class="full">Note<input name="note" maxlength="60"></label>'+
+ '<button class="btn full" type="submit">Add expense</button></form></div>'+
+ '<div class="panel"><h2>Expenses this month</h2>'+
+ (Object.keys(cats).length?'<div class="m" style="color:var(--mute);margin-bottom:8px">'+Object.keys(cats).map(function(c){return esc(c)+': '+money(cats[c])}).join(' &nbsp;|&nbsp; ')+'</div>':'')+
+ (list.length?list.map(function(e){return '<div class="row"><div>'+esc(e.note||e.cat)+'<div class="m">'+esc(e.cat)+', '+e.date+'</div></div><div><span class="amt">'+money(e.amt)+'</span> <button class="btn ghost danger" data-del-exp="'+e.id+'" aria-label="Delete expense">Delete</button></div></div>'}).join(''):'<div class="empty">No expenses yet. Add your first one above.</div>')+'</div>';
+}
+
+function debtView(type){
+ var isB=type==='borrowed', word=isB?'Borrowed from':'Lent to';
+ var all=S.debts.filter(function(d){return d.type===type});
+ var open=all.filter(function(d){return !d.done}), done=all.filter(function(d){return d.done});
+ function card(d){
+  var p=paid(d), rem=d.amt-p, pct=Math.min(100,p/d.amt*100);
+  return '<div class="debt'+(d.done?' done':'')+'"><header><b>'+esc(d.person)+'</b><span class="amt">'+money(d.amt)+'</span></header>'+
+  '<div class="m" style="color:var(--mute)">'+d.date+(d.due?' | due '+d.due:'')+(d.note?' | '+esc(d.note):'')+'</div>'+
+  '<div class="bar"><i style="width:'+pct+'%"></i></div>'+
+  '<div>'+(d.done?'<span class="tag ok">Complete on '+d.doneDate+'</span>':'<span class="tag">Pending</span> '+money(rem)+' left')+'</div>'+
+  (d.paid.length?'<div class="m" style="color:var(--mute);margin-top:6px">'+d.paid.map(function(x){return x.date+': '+money(x.amt)}).join(', ')+'</div>':'')+
+  (d.done?'':'<div class="pay"><input type="number" min="0.01" step="any" placeholder="'+(isB?'Amount I paid back':'Amount received')+'" id="pay-'+d.id+'" aria-label="Payment amount"><button class="btn ghost" data-pay="'+d.id+'">Record</button></div>')+
+  '<div class="acts">'+(d.done?'<button class="btn ghost" data-reopen="'+d.id+'">Reopen</button>':'<button class="btn ghost" data-done="'+d.id+'">Mark complete</button>')+'<button class="btn ghost danger" data-del-debt="'+d.id+'">Delete</button></div></div>';
+ }
+ return '<div class="panel"><h2>'+(isB?'Add money I borrowed':'Add money I lent')+'</h2><form id="f-debt" data-type="'+type+'">'+
+ '<label>'+word+'<input name="person" required maxlength="40"></label>'+
+ '<label>Amount<input name="amt" type="number" min="0.01" step="any" required></label>'+
+ '<label>Date<input name="date" type="date" value="'+today()+'"></label>'+
+ '<label>Due date (optional)<input name="due" type="date"></label>'+
+ '<label class="full">Note<input name="note" maxlength="60"></label>'+
+ '<button class="btn full" type="submit">Save record</button></form></div>'+
+ '<div class="panel"><h2>Pending ('+open.length+')</h2>'+(open.length?open.map(card).join(''):'<div class="empty">Nothing pending.</div>')+'</div>'+
+ '<div class="panel"><h2>Completed ('+done.length+')</h2>'+(done.length?done.map(card).join(''):'<div class="empty">Completed records will stay here.</div>')+'</div>';
+}
+
+function historyView(){
+ return '<div class="panel"><h2>Backup</h2><div class="m" style="color:var(--mute);margin-bottom:10px" id="cmsg" role="status">'+esc(cloudMsg)+'</div><div class="acts"><button class="btn ghost" id="b-exp">Save backup file</button><button class="btn ghost" id="b-imp">Restore from file</button><input type="file" id="b-file" accept=".json,application/json" hidden></div></div>'+
+ '<div class="panel"><h2>Activity history</h2>'+(S.log.length?'<ul class="log">'+S.log.map(function(l){return '<li><span class="m" style="color:var(--mute)">'+l.d+'</span> '+esc(l.t)+'</li>'}).join('')+'</ul>':'<div class="empty">Every change you make will be listed here.</div>')+'</div>';
+}
+
+function render(){
+ var v=document.getElementById('view');
+ v.innerHTML= tab==='budget'?budgetView(): tab==='history'?historyView(): debtView(tab);
+ document.querySelectorAll('.tabs button').forEach(function(b){b.setAttribute('aria-selected',b.dataset.t===tab)});
+ summary();
+}
+
+document.querySelector('.tabs').addEventListener('click',function(e){var b=e.target.closest('button');if(b){tab=b.dataset.t;render();}});
+
+document.addEventListener('submit',function(e){
+ e.preventDefault(); var f=e.target, d=new FormData(f);
+ if(f.id==='f-plan'){S.budget={income:0,limit:+d.get('limit')||0};log('Budget plan saved: limit '+money(S.budget.limit));}
+ if(f.id==='f-inc'){var ai=+d.get('amt');S.incomes.push({id:uid(),date:today(),src:d.get('src'),note:d.get('note'),amt:ai});log('Income +'+money(ai)+' ('+d.get('src')+')');}
+ if(f.id==='f-exp'){var a=+d.get('amt');S.expenses.push({id:uid(),date:today(),cat:d.get('cat'),note:d.get('note'),amt:a});log('Expense '+money(a)+' ('+d.get('cat')+')');}
+ if(f.id==='f-debt'){var t=f.dataset.type,a2=+d.get('amt');S.debts.push({id:uid(),type:t,person:d.get('person'),amt:a2,date:d.get('date')||today(),due:d.get('due'),note:d.get('note'),paid:[],done:false});log((t==='borrowed'?'Borrowed ':'Lent ')+money(a2)+(t==='borrowed'?' from ':' to ')+d.get('person'));}
+ save();render();
+});
+
+document.addEventListener('click',function(e){
+ var b=e.target.closest('button');if(!b)return;
+ if(b.id==='b-exp'){claude.use('downloads').then(function(dl){if(!dl){setMsg('File backup is not available here.');return;}return dl.save({filename:'campus-wallet-backup-'+today()+'.json',data:JSON.stringify(S,null,1)}).then(function(){setMsg('Backup file saved');}).catch(function(){});}).catch(function(){});return;}
+ if(b.id==='b-imp'){document.getElementById('b-file').click();return;}
+ function find(id){return S.debts.filter(function(x){return x.id===id})[0]}
+ if(b.dataset.delExp){S.expenses=S.expenses.filter(function(x){return x.id!==b.dataset.delExp});log('Expense deleted');}
+ else if(b.dataset.delInc){S.incomes=S.incomes.filter(function(x){return x.id!==b.dataset.delInc});log('Income deleted');}
+ else if(b.dataset.delDebt){var d0=find(b.dataset.delDebt);if(!confirm('Delete the record for '+d0.person+'? This cannot be undone.'))return;S.debts=S.debts.filter(function(x){return x.id!==d0.id});log('Deleted record: '+d0.person);}
+ else if(b.dataset.pay){var d1=find(b.dataset.pay),inp=document.getElementById('pay-'+d1.id),a=+inp.value;if(!(a>0)){inp.focus();return;}
+  d1.paid.push({date:today(),amt:a});log((d1.type==='borrowed'?'Paid back ':'Received ')+money(a)+(d1.type==='borrowed'?' to ':' from ')+d1.person);
+  if(paid(d1)>=d1.amt){d1.done=true;d1.doneDate=today();log('Complete: '+d1.person+' ('+money(d1.amt)+')');}}
+ else if(b.dataset.done){var d2=find(b.dataset.done);d2.done=true;d2.doneDate=today();log('Marked complete: '+d2.person+' ('+money(d2.amt)+')');}
+ else if(b.dataset.reopen){var d3=find(b.dataset.reopen);d3.done=false;d3.doneDate=null;log('Reopened: '+d3.person);}
+ else return;
+ save();render();
+});
+document.addEventListener('change',function(e){
+ if(e.target.id!=='b-file'||!e.target.files[0])return;
+ var r=new FileReader();r.onload=function(){try{var o=JSON.parse(r.result);if(!o.debts||!o.expenses)throw 0;if(!confirm('Replace current data with this backup?'))return;S.ts=Date.now();applyState(o);save();setMsg('Restored from file');}catch(x){alert('This file is not a valid Campus Wallet backup.');}};r.readAsText(e.target.files[0]);
+});
+render();initCloud();
+})();
+</script>
+</body>
+</html>
